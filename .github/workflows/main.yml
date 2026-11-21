@@ -9,9 +9,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install PlatformIO
+        run: pip install platformio "scons==4.8.1"
+      - name: Prepare Packages & Patch SCons
         run: |
-          pip install platformio "scons==4.8.1"
-          python -c "import SCons.Tool, os; p = os.path.dirname(SCons.Tool.__file__); open(os.path.join(p, 'FortranCommon.py'), 'w').close()"
+          pio pkg install
+          find ~/.platformio -type d -name "Tool" -path "*scons*" -exec touch "{}/FortranCommon.py" \;
       - name: Build
         run: pio run
       - name: Upload Firmware
