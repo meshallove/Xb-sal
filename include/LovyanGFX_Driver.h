@@ -1,103 +1,79 @@
+#pragma once
+
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
-#include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
-#include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
 #include <driver/i2c.h>
 
 class LGFX : public lgfx::LGFX_Device {
 public:
-
-  lgfx::Bus_RGB _bus_instance;
-  lgfx::Panel_RGB _panel_instance;
-  lgfx::Touch_GT911 _touch_instance;
+  lgfx::Bus_SPI _bus_instance;
+  lgfx::Panel_ST7789 _panel_instance;
+  lgfx::Light_PWM _light_instance;
+  lgfx::Touch_CST816S _touch_instance;
 
   LGFX(void) {
     {
+      auto cfg = _bus_instance.config();
+      cfg.spi_host = SPI2_HOST;
+      cfg.spi_mode = 0;
+      cfg.freq_write = 40000000;
+      cfg.freq_read = 16000000;
+      cfg.spi_3wire = true;
+      cfg.use_lock = true;
+      cfg.dma_channel = SPI_DMA_CH_AUTO;
+      cfg.pin_sclk = 39;
+      cfg.pin_mosi = 38;
+      cfg.pin_miso = 40;
+      cfg.pin_dc = 42;
+      _bus_instance.config(cfg);
+      _panel_instance.setBus(&_bus_instance);
+    }
+    {
       auto cfg = _panel_instance.config();
-
-      cfg.memory_width = 800;
-      cfg.memory_height = 480;
-      cfg.panel_width = 800;
-      cfg.panel_height = 480;
-
+      cfg.pin_cs = 45;
+      cfg.pin_rst = 0;
+      cfg.pin_busy = -1;
+      cfg.panel_width = 240;
+      cfg.panel_height = 320;
       cfg.offset_x = 0;
       cfg.offset_y = 0;
-
+      cfg.offset_rotation = 1;
+      cfg.dummy_read_pixel = 8;
+      cfg.dummy_read_bits = 1;
+      cfg.readable = true;
+      cfg.invert = true;
+      cfg.rgb_order = false;
+      cfg.dlen_16bit = false;
+      cfg.bus_shared = true;
       _panel_instance.config(cfg);
     }
-
     {
-      auto cfg = _panel_instance.config_detail();
-
-      cfg.use_psram = 1;
-
-      _panel_instance.config_detail(cfg);
+      auto cfg = _light_instance.config();
+      cfg.pin_bl = 1;
+      cfg.invert = false;
+      cfg.freq = 44100;
+      cfg.pwm_channel = 7;
+      _light_instance.config(cfg);
+      _panel_instance.setLight(&_light_instance);
     }
-
-    {
-      auto cfg = _bus_instance.config();
-      cfg.panel = &_panel_instance;
-      cfg.pin_d0 = GPIO_NUM_21;    // B0
-      cfg.pin_d1 = GPIO_NUM_47;    // B1
-      cfg.pin_d2 = GPIO_NUM_48;   // B2
-      cfg.pin_d3 = GPIO_NUM_45;    // B3
-      cfg.pin_d4 = GPIO_NUM_38;    // B4
-      cfg.pin_d5 = GPIO_NUM_9;    // G0
-      cfg.pin_d6 = GPIO_NUM_10;    // G1
-      cfg.pin_d7 = GPIO_NUM_11;    // G2
-      cfg.pin_d8 = GPIO_NUM_12;   // G3
-      cfg.pin_d9 = GPIO_NUM_13;   // G4
-      cfg.pin_d10 = GPIO_NUM_14;   // G5
-      cfg.pin_d11 = GPIO_NUM_7;  // R0
-      cfg.pin_d12 = GPIO_NUM_17;  // R1
-      cfg.pin_d13 = GPIO_NUM_18;  // R2
-      cfg.pin_d14 = GPIO_NUM_3;  // R3
-      cfg.pin_d15 = GPIO_NUM_46;  // R4
-
-      cfg.pin_henable = GPIO_NUM_42;
-      cfg.pin_vsync = GPIO_NUM_41;
-      cfg.pin_hsync = GPIO_NUM_40;
-      cfg.pin_pclk = GPIO_NUM_39;
-      
-      cfg.freq_write = 18000000;
-
-      cfg.hsync_polarity = 1;
-      cfg.hsync_pulse_width = 4;
-      cfg.hsync_back_porch = 8;
-      cfg.hsync_front_porch = 8;
-
-      cfg.vsync_polarity = 1;
-      cfg.vsync_pulse_width = 4;
-      cfg.vsync_back_porch = 8;
-      cfg.vsync_front_porch = 8;
-
-      cfg.pclk_idle_high = 1;
-
-      _bus_instance.config(cfg);
-    }
-    _panel_instance.setBus(&_bus_instance);
-
-
-
     {
       auto cfg = _touch_instance.config();
       cfg.x_min = 0;
-      cfg.x_max = 800;
+      cfg.x_max = 239;
       cfg.y_min = 0;
-      cfg.y_max = 480;
+      cfg.y_max = 319;
       cfg.pin_int = -1;
       cfg.bus_shared = false;
       cfg.offset_rotation = 0;
       cfg.i2c_port = I2C_NUM_0;
-      cfg.pin_sda = GPIO_NUM_15;
-      cfg.pin_scl = GPIO_NUM_16;
+      cfg.pin_sda = 48;
+      cfg.pin_scl = 47;
       cfg.pin_rst = -1;
       cfg.freq = 400000;
-      cfg.i2c_addr = 0x5D;  // 0x5D , 0x14
+      cfg.i2c_addr = 0x15;
       _touch_instance.config(cfg);
       _panel_instance.setTouch(&_touch_instance);
     }
-
     setPanel(&_panel_instance);
   }
 };
